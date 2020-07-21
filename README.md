@@ -31,3 +31,8 @@ gem install wikk_sql wikk_json wikk_configuration
 ## RGraph.drawing.yaxis.js
 Changed version of RGraph/Libraries/RGraph.drawing.yaxis.js to allow pop ups on yaxis labels. 
 
+This shouldn't be necessary with later versions, but the javascript in gpu_projects.html will need to change.
+
+## Relies on
+* https://github.com/UoA-eResearch/gpulogger
+* https://github.com/UoA-eResearch/nectar_uoa_gpudb_update
