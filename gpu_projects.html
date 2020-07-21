@@ -1,0 +1,205 @@
+<!DOCTYPE html >
+<html lang="en">
+<head>
+    <style>
+        table {
+            border-color: #ccc;
+        }
+
+        td {
+            text-align: left;
+            padding-left: 15px;
+        }
+    </style>
+
+    <script src="js/RGraph/libraries/RGraph.common.core.js" ></script>
+    <script src="js/RGraph/libraries/RGraph.common.dynamic.js" ></script>
+    <script src="js/RGraph/libraries/RGraph.common.tooltips.js" ></script>
+    <script src="js/RGraph/libraries/RGraph.drawing.yaxis.js" ></script>
+    <script src="js/RGraph/libraries/RGraph.gantt.js" ></script>
+    <script src="js/jquery.min.js" ></script>
+    <script src="js/wikk_ajax-min.js" ></script>
+    
+
+    <title>UoA GPU Projects</title>
+    <meta name="description" content="UoA GPU Projects" />
+    
+    <meta name="robots" content="noindex, nofollow" />
+
+    <script>
+    var data = [];
+    var emails = [];
+    var labels = [];
+    var ylabels = [];
+    var ytooltips = [];
+    var today = new Date();
+
+      function addDays(date, days) {
+        var result = new Date(date);
+        result.setDate(result.getDate() + days);
+        return result;
+      }
+      
+      function reserve_onclick(the_form) {
+        alert("Why should I do that?");
+      }
+      
+      function gpuDataCallback(gpu_data) {
+        try {
+          if(gpu_data != null) {
+            data = gpu_data
+            gen_labels();
+            draw_chart();
+          }
+          
+        } catch(e) {
+          alert("gpuDataCallback\n", e)
+        }
+        
+        get_data_async(60000); //Look again in 1 minute in ms.
+      }
+    
+      function errorGPUDataCallback(jqXHR, textStatus, errorMessage) {
+        alert(textStatus + "\n" + errorMessage);
+      }
+  
+      function get_data_async(repeat_time) {
+        wikk_ajax.delayed_ajax_get_call('/data/gpu_data.json', {}, gpuDataCallback, errorGPUDataCallback, null, "json", true, repeat_time)      
+      }
+
+      function getValue(index, group, seq) {
+          if (typeof data[group].start === 'number') {
+              var end_date = data[group].end_date; //new Date(2020, 0, data[group].start + data[group].duration)
+              return '{1}<br>{2}<br>Start: {3}<br>Ends: {4}<br>{5}<br>{6}'.format(data[group].project_name, data[group].email,data[group].start_date,end_date,data[group].pci_id,data[group].ip); //.toISOString().slice(0,10));
+          } else {
+              var end_date = data[group][index].end_date; //new Date(2020, 0, data[group][index].start + data[group][index].duration)
+              return '{1}<br>{2}<br>Start: {3}<br>Ends: {4}<br>{5}<br>{6}'.format(data[group][index].project_name, data[group][index].email,data[group][index].start_date,end_date,data[group][index].pci_id,data[group][index].ip); //.toISOString().slice(0,10));
+          }
+      }
+      
+      function gpu_popup(index, group, seq) {
+          alert(index + ' ' + group + ' ' + seq);
+          return "Empty"
+          if (typeof data[group].start === 'number') {
+              var end_date = data[group].end_date; //new Date(2020, 0, data[group].start + data[group].duration)
+              return '{1}<br>{2}<br>Start: {3}<br>Ends: {4}<br>{5}'.format(data[group].project_name,data[group].email,data[group].start_date,end_date,data[group].pci_id); //.toISOString().slice(0,10));
+          } else {
+              var end_date = data[group][index].end_date; //new Date(2020, 0, data[group][index].start + data[group][index].duration)
+              return '{1}<br>{2}<br>Start: {3}<br>Ends: {4}<br>{5}'.format(data[group][index].project_name, data[group][index].email,data[group][index].start_date,end_date,data[group][index].pci_id); //.toISOString().slice(0,10));
+          }
+      }
+
+      function gen_labels() {
+        labels_index = 0;
+        for (data_index = 0; data_index < data.length; data_index++){
+          ylabels[data_index] = data[data_index][0].y_label;
+          ytooltips[data_index] = data[data_index][0].y_label + ': ' + data[data_index][0].pci_id;
+          if(data[data_index][0].duration <= 0) {
+            data[data_index][0].instance_name = '';
+          }
+          for(sub_index = 0; sub_index < data[data_index].length; sub_index++){
+            labels[labels_index] = data[data_index][sub_index].instance_name;
+            labels_index++
+          }
+        }
+      }
+      
+      function tooltip_override (obj, text, x, y, idx)
+      {
+          alert('In tooltip override function...' + obj.type+ ' ' + text + '-'+x+'-'+y+'-'+idx);
+      }
+            
+      function draw_chart() {
+        RGraph.clear(document.getElementById("cvs"));
+        
+        gantt = new RGraph.Gantt({
+            id: 'cvs',
+            data: data,
+            options: {
+                labelsInbar: labels,
+                labelsComplete: false,
+                labelsInbarAlign: 'center',
+                marginLeft: 140,
+                xaxisScaleMin: 1,
+                xaxisScaleMax: 366,
+                xaxisLabels: ['Jan', 'Feb', 'Mar', 'Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+                labelsPercent: true,
+                backgroundGridVlinesCount: 366,
+                title: '2020',
+                titleBold: true,
+                titleSize: 18,
+                titleItalic: true,
+                tooltips: '%{function:getValue(%{index}, %{group}, %{seq})}'
+            }
+        }).draw();
+
+        RGraph.tooltips.style.maxWidth = '950px';
+        RGraph.tooltips.style.fontSize = '14pt';
+        
+        new RGraph.Drawing.YAxis({
+            id: 'cvs',
+            x: gantt.marginLeft,
+            options: {
+               yaxisLabelsPosition: 'section',
+               yaxisTickmarks: false,
+               yaxisLabelsCount: ylabels.length,
+               yaxisLabelsSpecific: ylabels,
+               tooltips: ytooltips //'%{function:gpu_popup(%{index}, %{group}, %{seq})}',
+               //tooltipsOverride: tooltip_override
+            }
+        }).draw();
+
+      }
+
+      function init() {
+        var start_date = document.getElementById("start_date");
+        var end_date = document.getElementById("end_date");
+        start_date.value = today.toISOString().slice(0,10)
+        end_date.value = addDays(today, 93).toISOString().slice(0,10)
+        get_data_async(0);
+      }
+      
+    </script>
+
+</head>
+<body onload="init();">
+
+  <h1>GPU Allocations 2020</h1>
+
+  <canvas id="cvs" width="2000" height="800">[No canvas support]</canvas>
+
+  <table>
+    <tr><th>Reserve GPU</th>
+      <td>
+        <select onchange="gpu_onchange(this);">
+        <option>K20</option>
+        <option>K40</option>
+        <option>1080</option>
+        <option>TRTX</option>
+        <option>P40</option>
+        <option>T4</option>
+        <option>V100</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <th>Start Date</th>
+      <td><input type="text" id="start_date" name="start_date" size="12" onchange="set_enddate(this);"></td>
+    </tr>
+    <tr>
+      <th>End Date</th>
+      <td><input type="text" id="end_date" name="end_date" size="12"></td>
+    </tr>
+    <tr>
+      <th>Project</th>
+      <td><input type="text" id="end_date" name="end_date" size="32"></td>
+    </tr>
+    <tr>
+      <td>&nbsp;</td>
+      <td><input type="button" value="Reserve" onclick="reserve_onclick(this);"></td>
+    </tr>
+  </table>
+
+
+</body>
+</html>
