@@ -121,6 +121,7 @@ def main
   generate_data_file(file: DATAFILE, rows: rows_arr)
 
   FileUtils.mv(DATAFILE, WWW_DATAFILE)
-  
+end
+
 main
 
