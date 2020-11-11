@@ -10,7 +10,7 @@ Uses RGraph javascript library's Gantt chart to produce a calendar view of the G
 
 Currently the gpu_data.json file is being generated from a cron job, 5 minutes after the gpu db update from ntr-ops cron job updates the instance data. Needs a rewrite to just pull the data from the DB.
 ```
-10 * * * * /root/sbin/gen_gpu_data
+10,40 * * * * /root/sbin/gen_gpu_data
 ```
 Writes to a temporary gpu_data.json file, then moves this to the web data/ directory, so the web version is always complete (should ensure this is on the same disk, so it is a rename, rather than a copy)
 
